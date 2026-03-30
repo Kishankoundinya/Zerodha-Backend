@@ -192,3 +192,7 @@ export const positions = [
     isLoss: true,
   },
 ];
+
+
+//Stocks
+
