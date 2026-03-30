@@ -14,6 +14,10 @@ app.use(express.json())
 app.use(bodyParser.json());
 require("dotenv").config();
 app.use(cookieParser());
+// app.use(cors({
+//   origin: /^http:\/\/localhost:\d+$/, 
+//   credentials: true
+// }));
 app.use(cors({
   origin: process.env.FRONTEND_URL,
   credentials: true
@@ -154,8 +158,8 @@ function generateSimpleRandomDayData(symbol) {
 }
 ////////////////////////////////////////////////////////////////////////
 
-app.listen(PORT, () => {
-    console.log(`app is listining on ${PORT}`)
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`app is listening on ${PORT}`)
 })
 
 
