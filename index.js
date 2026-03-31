@@ -12,14 +12,13 @@ const { PositionsModel } = require('./Model/PositionsModel');
 const PORT = process.env.PORT || 3003;
 const app = express();
 
-// Middleware - order matters!
+// Middleware
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(cookieParser());
 require("dotenv").config();
 
 // ========== FIXED CORS CONFIGURATION ==========
-// Allow multiple origins (your frontend + local development)
 const allowedOrigins = [
   'https://zerodha-dashboard-q4oc.vercel.app',
   'http://localhost:5173',  // Vite default
@@ -36,7 +35,7 @@ const corsOptions = {
     if (allowedOrigins.indexOf(origin) !== -1 || origin === process.env.FRONTEND_URL) {
       callback(null, true);
     } else {
-      console.log('Blocked origin:', origin); // For debugging
+      console.log('Blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -47,22 +46,16 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
-// Apply CORS middleware
+// Apply CORS middleware - this handles OPTIONS preflight automatically
 app.use(cors(corsOptions));
-
-// Explicitly handle preflight requests for all routes
-app.options('*', cors(corsOptions));
-
-// ========== END OF CORS CONFIGURATION ==========
 
 // Connecting the DB
 connectDB();
 
-// Your routes
+// ========== ROUTES ==========
 app.get('/allHoldings', async (req, res) => {
   try {
     let allHoldings = await HoldingModel.find({});
-    console.log(allHoldings);
     res.json(allHoldings);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -78,7 +71,6 @@ app.get('/allPositions', async (req, res) => {
   }
 });
 
-// API Endpoints
 app.get('/', (req, res) => {
   res.send("api working successfully");
 });
@@ -91,7 +83,6 @@ app.post('/api/user/watchlist', async (req, res) => {
 });
 
 // Test endpoint to verify CORS is working
-app.options('/api/test', cors(corsOptions)); // Handle preflight for test route
 app.get('/api/test', (req, res) => {
   res.json({ 
     message: 'CORS is working!', 
@@ -100,10 +91,14 @@ app.get('/api/test', (req, res) => {
   });
 });
 
-// Simple endpoint for random stock data for any symbol (single day)
+// ========== STOCK DATA ENDPOINTS ==========
 app.get('/api/stock-data', async (req, res) => {
   try {
     const symbol = req.query.symbol;
+    
+    if (!symbol) {
+      return res.status(400).json({ error: 'Symbol parameter is required' });
+    }
     
     // Generate random single day data for any symbol
     const stockData = {
@@ -171,6 +166,7 @@ function generateBasePrice(symbol) {
   return price;
 }
 
+// Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`app is listening on ${PORT}`);
 });
