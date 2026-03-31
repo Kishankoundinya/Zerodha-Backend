@@ -1,60 +1,109 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const connectDB =require('./Config/db');
-const bodyParser=require('body-parser');
+const connectDB = require('./Config/db');
+const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
-const authRouter= require('./routes/authRoutes')
+const authRouter = require('./routes/authRoutes');
 const cors = require('cors');
 const { userRouter } = require("./routes/userRoutes");
-const {HoldingModel}=require('./Model/HoldingModel')
-const {PositionsModel}=require('./Model/PositionsModel')
+const { HoldingModel } = require('./Model/HoldingModel');
+const { PositionsModel } = require('./Model/PositionsModel');
+
 const PORT = process.env.PORT || 3003;
 const app = express();
-app.use(express.json())
+
+// Middleware - order matters!
+app.use(express.json());
 app.use(bodyParser.json());
-require("dotenv").config();
 app.use(cookieParser());
-// app.use(cors({
-//   origin: /^http:\/\/localhost:\d+$/, 
-//   credentials: true
-// }));
-app.use(cors({
-  origin: process.env.FRONTEND_URL,
-  credentials: true
-}));
+require("dotenv").config();
 
+// ========== FIXED CORS CONFIGURATION ==========
+// Allow multiple origins (your frontend + local development)
+const allowedOrigins = [
+  'https://zerodha-dashboard-q4oc.vercel.app',
+  'http://localhost:5173',  // Vite default
+  'http://localhost:3000',   // React default
+  'http://localhost:3001',
+  'http://localhost:5000'
+];
 
-//////////////// Connecting the DB/////////////////////
+const corsOptions = {
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || origin === process.env.FRONTEND_URL) {
+      callback(null, true);
+    } else {
+      console.log('Blocked origin:', origin); // For debugging
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // Important for cookies/sessions
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cookie'],
+  exposedHeaders: ['Set-Cookie'],
+  optionsSuccessStatus: 200
+};
+
+// Apply CORS middleware
+app.use(cors(corsOptions));
+
+// Explicitly handle preflight requests for all routes
+app.options('*', cors(corsOptions));
+
+// ========== END OF CORS CONFIGURATION ==========
+
+// Connecting the DB
 connectDB();
 
-
-app.get('/allHoldings',async(req,res)=>{
-     let allHoldings= await HoldingModel.find({});
-     console.log(allHoldings)
-     res.json(allHoldings);
+// Your routes
+app.get('/allHoldings', async (req, res) => {
+  try {
+    let allHoldings = await HoldingModel.find({});
+    console.log(allHoldings);
+    res.json(allHoldings);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-app.get('/allPositions',async(req,res)=>{
-     let allPositions= await PositionsModel.find({});
-     res.json(allPositions);
+app.get('/allPositions', async (req, res) => {
+  try {
+    let allPositions = await PositionsModel.find({});
+    res.json(allPositions);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-/////////////////API Endpoint/////////////
-app.get('/',(req,res)=>{
-     res.send("api working succesfully")
-})
-app.use('/api/auth',authRouter)
-app.use('/api/user',userRouter)
+// API Endpoints
+app.get('/', (req, res) => {
+  res.send("api working successfully");
+});
 
-app.post('/api/user/watchlist',async(req,res)=>{
-     
-})
+app.use('/api/auth', authRouter);
+app.use('/api/user', userRouter);
 
-//////////////////////////////////////////////////////////////////////////////////////////////
+app.post('/api/user/watchlist', async (req, res) => {
+  // Your watchlist logic here
+});
+
+// Test endpoint to verify CORS is working
+app.options('/api/test', cors(corsOptions)); // Handle preflight for test route
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    message: 'CORS is working!', 
+    timestamp: new Date().toISOString(),
+    origin: req.headers.origin 
+  });
+});
+
 // Simple endpoint for random stock data for any symbol (single day)
 app.get('/api/stock-data', async (req, res) => {
   try {
-    const symbol = req.query.symbol ;
+    const symbol = req.query.symbol;
     
     // Generate random single day data for any symbol
     const stockData = {
@@ -107,12 +156,10 @@ function generateRandomDayData(symbol) {
   return data;
 }
 
-// Helper function to generate different base prices for different symbols
 function generateBasePrice(symbol) {
   const symbolUpper = symbol.toUpperCase();
   
   // Generate a consistent but "unique" base price for each symbol
-  // by converting the symbol to a number
   let hash = 0;
   for (let i = 0; i < symbolUpper.length; i++) {
     hash = symbolUpper.charCodeAt(i) + ((hash << 5) - hash);
@@ -124,42 +171,6 @@ function generateBasePrice(symbol) {
   return price;
 }
 
-// Alternative: Simpler version with even more randomness
-function generateSimpleRandomDayData(symbol) {
-  const data = [];
-  const today = new Date();
-  
-  // Start with a completely random price
-  let currentPrice = 50 + Math.random() * 450; // Random price between $50 and $500
-  
-  for (let hour = 0; hour < 24; hour++) {
-    const timestamp = new Date(today);
-    timestamp.setHours(hour, 0, 0, 0);
-    
-    const open = currentPrice;
-    const change = (Math.random() - 0.5) * 10; // Random change ±$5
-    const close = open + change;
-    const high = Math.max(open, close) + Math.random() * 3;
-    const low = Math.min(open, close) - Math.random() * 3;
-    
-    data.push({
-      timestamp: timestamp.toISOString(),
-      open: parseFloat(open.toFixed(2)),
-      high: parseFloat(high.toFixed(2)),
-      low: parseFloat(low.toFixed(2)),
-      close: parseFloat(close.toFixed(2)),
-      volume: Math.floor(Math.random() * 1000000) + 500000
-    });
-    
-    currentPrice = close;
-  }
-  
-  return data;
-}
-////////////////////////////////////////////////////////////////////////
-
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`app is listening on ${PORT}`)
-})
-
-
+  console.log(`app is listening on ${PORT}`);
+});
