@@ -31,8 +31,8 @@ const register = async (req, res) => {
         const mailOptions={
             from:process.env.SENDER_EMAIL,
             to:email,
-            subject:'Welcome to ZerodhaClone',
-            text:`Welcome to Zerodha Clone website , Your Account has been created with email id: ${email}`
+            subject:'Welcome to TradeX',
+            text:`Welcome to TradeX website , Your Account has been created with email id: ${email}`
 
         }
 
