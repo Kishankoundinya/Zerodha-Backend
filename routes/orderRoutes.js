@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { userAuth } = require('../Middleware/userAuth');
-const { userModel } = require('../model/userModel');
+const { userModel } = require('../Model/userModel');
 
 // Place order endpoint
 router.post('/place-order', userAuth, async (req, res) => {
