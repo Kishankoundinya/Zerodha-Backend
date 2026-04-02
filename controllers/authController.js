@@ -20,11 +20,24 @@ const register = async (req, res) => {
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY, { expiresIn: '7d' });
 
+        // FORCED CROSS-SITE COOKIE SETTINGS FOR PRODUCTION
+        const isProduction = process.env.NODE_ENV === 'production';
+        
         res.cookie('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            secure: true,  // Force true for cross-site
+            sameSite: 'none',  // Force 'none' for cross-site
             maxAge: 7 * 24 * 60 * 60 * 1000,
+            path: '/',
+            domain: isProduction ? '.onrender.com' : undefined  // Add domain only in production
+        });
+
+        // Log cookie settings
+        console.log('✅ Registration - Cookie set with:', {
+            secure: true,
+            sameSite: 'none',
+            domain: isProduction ? '.onrender.com' : 'localhost',
+            environment: process.env.NODE_ENV
         });
 
         // SENDING WELCOME EMAIL
@@ -49,6 +62,7 @@ const register = async (req, res) => {
         return res.json({ success: true, userData: userData });
     }
     catch (e) {
+        console.error('❌ Registration error:', e.message);
         return res.json({ success: false, message: e.message });
     }
 }
@@ -72,11 +86,25 @@ const login = async (req, res) => {
         
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY, { expiresIn: '7d' });
 
+        // FORCED CROSS-SITE COOKIE SETTINGS FOR PRODUCTION
+        const isProduction = process.env.NODE_ENV === 'production';
+        
         res.cookie('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            secure: true,  // Force true for cross-site
+            sameSite: 'none',  // Force 'none' for cross-site
             maxAge: 7 * 24 * 60 * 60 * 1000,
+            path: '/',
+            domain: isProduction ? '.onrender.com' : undefined  // Add domain only in production
+        });
+        
+        // Log cookie settings
+        console.log('✅ Login successful for:', email);
+        console.log('🍪 Cookie set with:', {
+            secure: true,
+            sameSite: 'none',
+            domain: isProduction ? '.onrender.com' : 'localhost',
+            environment: process.env.NODE_ENV
         });
         
         // Send user data back
@@ -91,6 +119,7 @@ const login = async (req, res) => {
         return res.json({ success: true, userData: userData });
 
     } catch (e) {
+        console.error('❌ Login error:', e.message);
         return res.json({ success: false, message: e.message });
     }
 }
@@ -98,13 +127,20 @@ const login = async (req, res) => {
 ////////////////////logout function/////////////////////////////////////////
 const logout = async (req, res) => {
     try {
+        const isProduction = process.env.NODE_ENV === 'production';
+        
         res.clearCookie('token', {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            secure: true,
+            sameSite: 'none',
+            path: '/',
+            domain: isProduction ? '.onrender.com' : undefined
         });
+        
+        console.log('✅ Logout successful, cookie cleared');
         return res.json({ success: true, message: 'Logged Out' });
     } catch (e) {
+        console.error('❌ Logout error:', e.message);
         return res.json({ success: false, message: e.message });
     }
 }
@@ -132,6 +168,7 @@ const sendVerifyOtp = async (req, res) => {
         return res.json({ success: true, message: 'Verification OTP sent on Email' });
 
     } catch (e) {
+        console.error('❌ Send OTP error:', e.message);
         return res.json({ success: false, message: e.message });
     }
 }
@@ -162,6 +199,7 @@ const verifyEmail = async (req, res) => {
         return res.json({ success: true, message: 'Account Verified Successfully' });
 
     } catch (e) {
+        console.error('❌ Verify email error:', e.message);
         return res.json({ success: false, message: e.message });
     }
 }
@@ -185,6 +223,7 @@ const isAuthenticated = async (req, res) => {
         
         return res.json({ success: true, userData: userData });
     } catch (e) {
+        console.error('❌ Is authenticated error:', e.message);
         return res.status(500).json({ success: false, message: e.message });
     }
 }
@@ -217,6 +256,7 @@ const sendResetOtp = async (req, res) => {
         return res.json({ success: true, message: 'Reset OTP sent on Email' });
 
     } catch (e) {
+        console.error('❌ Send reset OTP error:', e.message);
         return res.json({ success: false, message: e.message });
     }
 }
@@ -249,6 +289,7 @@ const resetPassword = async (req, res) => {
         return res.json({ success: true, message: "Password has been reset successfully" });
 
     } catch (e) {
+        console.error('❌ Reset password error:', e.message);
         return res.json({ success: false, message: e.message });
     }
 }
