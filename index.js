@@ -18,7 +18,7 @@ app.use(cookieParser());
 require("dotenv").config();
 
 const allowedOrigins = [
-  'https://trade-x-dashboard.vercel.app/',
+  'https://trade-x-dashboard.vercel.app',
   'http://localhost:5173',
   'http://localhost:5174',  
   'http://localhost:3000',
